@@ -71,15 +71,18 @@ namespace Leopotam.EcsLite.UnityEditor {
         static Type[] _componentTypesCache = new Type[32];
 
         Transform _entitiesRoot;
+
+        private bool _autoName = true;
         // Transform _filtersRoot;
         
-        public static GameObject Create (EcsWorld world, string name = null) {
+        public static GameObject Create (EcsWorld world, string name = null, bool autoName = true) {
             if (world == null) { throw new ArgumentNullException (nameof (world)); }
             var go = new GameObject (name != null ? $"[ECS-WORLD {name}]" : "[ECS-WORLD]");
             DontDestroyOnLoad (go);
             go.hideFlags = HideFlags.NotEditable;
             var observer = go.AddComponent<EcsWorldObserver> ();
             observer._world = world;
+            observer._autoName = autoName;
             var worldTr = observer.transform;
             // entities root.
             observer._entitiesRoot = new GameObject ("Entities").transform;
@@ -116,7 +119,8 @@ namespace Leopotam.EcsLite.UnityEditor {
         }
 
         public void OnEntityChanged (int entity) {
-            UpdateEntityName (entity, true);
+            if (_autoName)
+                UpdateEntityName (entity, true);
         }
 
         public void OnEntityDestroyed (int entity) {
