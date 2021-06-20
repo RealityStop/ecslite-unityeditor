@@ -9,7 +9,7 @@ Based on the standard integration for LeoEcsLite (https://github.com/Leopotam/ec
 ```
 
 Then, using the extension methods, the user can manually name entities:
-```
+```cs
 //naming on creation
 _gameWorld.NewEntity("Flagship");
 
