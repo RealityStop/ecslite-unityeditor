@@ -20,6 +20,8 @@ namespace Leopotam.EcsLite.UnityEditor {
         EcsEntityDebugView[] _entities;
         Dictionary<int, byte> _dirtyEntities;
         Type[] _typesCache;
+        private EcsPool<UnityDebugName> _namePool;
+        private EcsFilter _debugNameFilter;
 
         public EcsWorldDebugSystem (string worldName = null, bool bakeComponentsInName = true) {
             _bakeComponentsInName = bakeComponentsInName;
@@ -38,21 +40,43 @@ namespace Leopotam.EcsLite.UnityEditor {
             _entities = new EcsEntityDebugView [_world.GetWorldSize ()];
             _dirtyEntities = new Dictionary<int, byte> (_entities.Length);
             _world.AddEventListener (this);
+            if (!_bakeComponentsInName)
+            {
+                _namePool = _world.GetPool<UnityDebugName>();
+                _debugNameFilter = _world.Filter<UnityDebugName>().End();
+            }
         }
 
         public void Run (EcsSystems systems) {
-            foreach (var pair in _dirtyEntities) {
-                var entity = pair.Key;
-                var entityName = entity.ToString ("X8");
-                if (_world.GetEntityGen (entity) > 0) {
-                    var count = _world.GetComponentTypes (entity, ref _typesCache);
-                    for (var i = 0; i < count; i++) {
-                        entityName = $"{entityName}:{EditorExtensions.GetCleanGenericTypeName (_typesCache[i])}";
+            if (_bakeComponentsInName)
+            {
+                foreach (var pair in _dirtyEntities)
+                {
+                    var entity = pair.Key;
+                    var entityName = entity.ToString("X8");
+                    if (_world.GetEntityGen(entity) > 0)
+                    {
+                        var count = _world.GetComponentTypes(entity, ref _typesCache);
+                        for (var i = 0; i < count; i++)
+                        {
+                            entityName = $"{entityName}:{EditorExtensions.GetCleanGenericTypeName(_typesCache[i])}";
+                        }
                     }
+
+                    _entities[entity].name = entityName;
                 }
-                _entities[entity].name = entityName;
+
+                _dirtyEntities.Clear();
             }
-            _dirtyEntities.Clear ();
+            else
+            {
+                foreach (var entity in _debugNameFilter)
+                {
+                    ref UnityDebugName nameComponent = ref _namePool.Get(entity);
+                    if (nameComponent.changed)
+                        _entities[entity].name = nameComponent.DisplayName;
+                }
+            }
         }
 
         public void OnEntityCreated (int entity) {
